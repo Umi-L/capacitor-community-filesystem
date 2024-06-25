@@ -15,6 +15,7 @@ var require$$2__default = /*#__PURE__*/_interopDefaultLegacy(require$$2);
 var src = {};
 
 Object.defineProperty(src, "__esModule", { value: true });
+exports.Filesystem = src.Filesystem = void 0;
 const fs_1 = require$$0__default['default'];
 const os_1 = require$$1__default['default'];
 const path_1 = require$$2__default['default'];
@@ -287,8 +288,7 @@ class Filesystem {
         return null;
     }
 }
-var Filesystem_1 = src.Filesystem = Filesystem;
+exports.Filesystem = src.Filesystem = Filesystem;
 
-exports.Filesystem = Filesystem_1;
 exports['default'] = src;
 //# sourceMappingURL=plugin.js.map
