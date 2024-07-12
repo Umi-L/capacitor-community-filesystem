@@ -11,18 +11,19 @@ import {
     stat,
     unlink,
     writeFile,
+    statSync,
 } from 'fs';
-import { homedir, platform } from 'os';
-import { dirname, join, sep } from 'path';
+import {homedir, platform} from 'os';
+import {dirname, join, sep} from 'path';
 
 import type {
     AppendFileOptions,
-    CopyOptions,
-    DeleteFileOptions,
+    CopyOptions, CopyResult,
+    DeleteFileOptions, DownloadFileOptions, DownloadFileResult, FileInfo,
     FilesystemPlugin,
     GetUriOptions,
     GetUriResult,
-    MkdirOptions,
+    MkdirOptions, ProgressListener,
     ReaddirOptions,
     ReaddirResult,
     ReadFileOptions,
@@ -34,14 +35,34 @@ import type {
     WriteFileOptions,
     WriteFileResult,
 } from '../../src/definitions';
+import * as process from "process";
+import * as Buffer from "buffer";
+import * as Buffer from "buffer";
+import * as Buffer from "buffer";
+import * as path from "path";
+import * as path from "path";
+import * as path from "path";
+import * as path from "path";
+import * as path from "path";
+import * as path from "path";
+import * as path from "path";
+import {PluginListenerHandle} from "@capacitor/core";
 
 export class Filesystem implements FilesystemPlugin {
 
     fileLocations: { [key: string]: string } = null;
 
+    private isBase64String(str: string): boolean {
+        try {
+            return btoa(atob(str)) == str;
+        } catch (err) {
+            return false;
+        }
+    }
+
     constructor() {
 
-        this.fileLocations = { DRIVE_ROOT: '', DOCUMENTS: '' };
+        this.fileLocations = {DRIVE_ROOT: '', DOCUMENTS: ''};
 
         if (platform() == "win32") {
             this.fileLocations["DRIVE_ROOT"] = process.cwd().split(sep)[0];
@@ -62,7 +83,7 @@ export class Filesystem implements FilesystemPlugin {
                     return;
                 }
 
-                resolve({ data: options.encoding ? data : Buffer.from(data, 'binary').toString('base64') });
+                resolve({data: options.encoding ? data : Buffer.from(data, 'binary').toString('base64')});
             });
         });
     }
@@ -72,17 +93,18 @@ export class Filesystem implements FilesystemPlugin {
             if (Object.keys(this.fileLocations).indexOf(options.directory) === -1)
                 reject(`${options.directory} is currently not supported in the Electron implementation.`);
             let lookupPath = this.fileLocations[options.directory] + options.path;
-            let data: (Buffer | string) = options.data;
-            if (!options.encoding) {
-                const base64Data = options.data.indexOf(',') >= 0 ? options.data.split(',')[1] : options.data;
-                data = Buffer.from(base64Data, 'base64');
+            let data: (Blob | string) = options.data;
+            if (!options.encoding && !(data instanceof Blob)) {
+                data = data.indexOf(',') >= 0 ? data.split(',')[1] : data;
+                if (!this.isBase64String(data))
+                    throw Error('The supplied data is not valid base64 content.');
             }
             const dstDirectory = dirname(lookupPath);
             stat(dstDirectory, (err: any) => {
                 if (err) {
                     const doRecursive = options.recursive;
                     if (doRecursive) {
-                        mkdirSync(dstDirectory, { recursive: doRecursive });
+                        mkdirSync(dstDirectory, {recursive: doRecursive});
                     }
                 }
                 writeFile(lookupPath, data, options.encoding || 'binary', (err: any) => {
@@ -90,7 +112,7 @@ export class Filesystem implements FilesystemPlugin {
                         reject(err);
                         return;
                     }
-                    resolve({ uri: lookupPath });
+                    resolve({uri: lookupPath});
                 });
             });
         });
@@ -139,7 +161,7 @@ export class Filesystem implements FilesystemPlugin {
                 reject(`${options.directory} is currently not supported in the Electron implementation.`);
             let lookupPath = this.fileLocations[options.directory] + options.path;
             const doRecursive = options.recursive;
-            mkdir(lookupPath, { recursive: doRecursive }, (err: any) => {
+            mkdir(lookupPath, {recursive: doRecursive}, (err: any) => {
                 if (err) {
                     reject(err);
                     return;
@@ -150,15 +172,15 @@ export class Filesystem implements FilesystemPlugin {
     }
 
     rmdir(options: RmdirOptions): Promise<void> {
-        let { path, directory, recursive } = options;
+        let {path, directory, recursive} = options;
 
         if (Object.keys(this.fileLocations).indexOf(directory) === -1)
             return Promise.reject(`${directory} is currently not supported in the Electron implementation.`);
 
-        return this.stat({ path, directory })
+        return this.stat({path, directory})
             .then((stat) => {
                 if (stat.type === 'directory') {
-                    return this.readdir({ path, directory })
+                    return this.readdir({path, directory})
                         .then((readDirResult) => {
                             if (readDirResult.files.length !== 0 && !recursive) {
                                 return Promise.reject(`${path} is not empty.`);
@@ -179,15 +201,15 @@ export class Filesystem implements FilesystemPlugin {
                                 });
                             } else {
                                 return Promise.all(readDirResult.files.map((f) => {
-                                    return this.rmdir({ path: join(path, f), directory, recursive });
+                                    return this.rmdir({path: join(path, f.name), directory, recursive});
                                 }))
                                     .then(() => {
-                                        return this.rmdir({ path, directory, recursive });
+                                        return this.rmdir({path, directory, recursive});
                                     });
                             }
                         });
                 } else {
-                    return this.deleteFile({ path, directory });
+                    return this.deleteFile({path, directory});
                 }
             });
     }
@@ -203,7 +225,22 @@ export class Filesystem implements FilesystemPlugin {
                     return;
                 }
 
-                resolve({ files });
+                let fileInfos:FileInfo[] = files.map((file) => {
+                    let stats = statSync(lookupPath + sep + file);
+
+                    let fileInfo: FileInfo = {
+                        name: file,
+                        type: 'file',
+                        size: stats.size,
+                        ctime: stats.ctimeMs,
+                        mtime: stats.mtimeMs,
+                        uri: lookupPath + sep + file
+                    };
+
+                    return fileInfo;
+                });
+
+                resolve({files: fileInfos});
             })
         });
     }
@@ -213,7 +250,7 @@ export class Filesystem implements FilesystemPlugin {
             if (Object.keys(this.fileLocations).indexOf(options.directory) === -1)
                 reject(`${options.directory} directory is currently not supported in the Electron implementation.`);
             let lookupPath = this.fileLocations[options.directory] + options.path;
-            resolve({ uri: lookupPath });
+            resolve({uri: lookupPath});
         });
     };
 
@@ -228,8 +265,13 @@ export class Filesystem implements FilesystemPlugin {
                     return;
                 }
 
+                if (!stats.isDirectory() && !stats.isFile()) {
+                    reject('The path is neither a file nor a directory.');
+                    return;
+                }
+
                 resolve({
-                    type: (stats.isDirectory() ? 'directory' : (stats.isFile() ? 'file' : 'Not available')),
+                    type: (stats.isDirectory() ? 'directory' : 'file'),
                     size: stats.size,
                     ctime: stats.ctimeMs,
                     mtime: stats.mtimeMs,
@@ -329,8 +371,10 @@ export class Filesystem implements FilesystemPlugin {
         });
     }
 
-    copy(options: CopyOptions): Promise<void> {
-        return this._copy(options, false);
+    async copy(options: CopyOptions): Promise<CopyResult> {
+        await this._copy(options, false);
+
+        return Promise.resolve({uri: options.to});
     }
 
     rename(options: RenameOptions): Promise<void> {
@@ -343,5 +387,17 @@ export class Filesystem implements FilesystemPlugin {
 
     async requestPermissions(): Promise<any> {
         return null;
+    }
+
+    addListener(eventName: "progress", listenerFunc: ProgressListener): Promise<PluginListenerHandle> {
+        throw new Error('Method not implemented.');
+    }
+
+    downloadFile(options: DownloadFileOptions): Promise<DownloadFileResult> {
+        throw new Error('Method not implemented.');
+    }
+
+    removeAllListeners(): Promise<void> {
+        throw new Error('Method not implemented.');
     }
 }
