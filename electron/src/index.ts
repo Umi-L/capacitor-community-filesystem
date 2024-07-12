@@ -37,16 +37,10 @@ import type {
 } from '../../src/definitions';
 import * as process from "process";
 import * as Buffer from "buffer";
-import * as Buffer from "buffer";
-import * as Buffer from "buffer";
-import * as path from "path";
-import * as path from "path";
-import * as path from "path";
-import * as path from "path";
-import * as path from "path";
-import * as path from "path";
-import * as path from "path";
+import * as os from "os";
+import * as path from "path"
 import {PluginListenerHandle} from "@capacitor/core";
+import {Directory} from "../../src/definitions";
 
 export class Filesystem implements FilesystemPlugin {
 
@@ -69,7 +63,9 @@ export class Filesystem implements FilesystemPlugin {
         } else {
             this.fileLocations["DRIVE_ROOT"] = '/';
         }
-        this.fileLocations['DOCUMENTS'] = join(homedir(), `Documents`) + sep;
+        this.fileLocations[Directory.Documents] = join(homedir(), `Documents`) + sep;
+        this.fileLocations[Directory.Cache] = join(homedir(), `AppData`, `Local`, `Temp`) + sep;
+        this.fileLocations[Directory.Data] = process.cwd() + sep;
     }
 
     readFile(options: ReadFileOptions): Promise<ReadFileResult> {
@@ -219,13 +215,16 @@ export class Filesystem implements FilesystemPlugin {
             if (Object.keys(this.fileLocations).indexOf(options.directory) === -1)
                 reject(`${options.directory} is currently not supported in the Electron implementation.`);
             let lookupPath = this.fileLocations[options.directory] + options.path;
+
+            console.log("reading directory in electron", lookupPath);
+
             readdir(lookupPath, (err: any, files: string[]) => {
                 if (err) {
                     reject(err);
                     return;
                 }
 
-                let fileInfos:FileInfo[] = files.map((file) => {
+                let fileInfos: FileInfo[] = files.map((file) => {
                     let stats = statSync(lookupPath + sep + file);
 
                     let fileInfo: FileInfo = {
@@ -279,6 +278,10 @@ export class Filesystem implements FilesystemPlugin {
                 });
             });
         });
+    }
+
+    private getDocumentsDirectory(): string {
+
     }
 
     private _copy(options: CopyOptions, doRename: boolean = false): Promise<void> {
