@@ -37,12 +37,13 @@ import type {
 } from '../../src/definitions';
 import * as process from "process";
 import * as Buffer from "buffer";
-import * as os from "os";
-import * as path from "path"
 import {PluginListenerHandle} from "@capacitor/core";
 import {Directory} from "../../src/definitions";
 
 export class Filesystem implements FilesystemPlugin {
+
+
+    con = require('electron').remote.getGlobal('console')
 
     fileLocations: { [key: string]: string } = null;
 
@@ -73,11 +74,13 @@ export class Filesystem implements FilesystemPlugin {
             if (Object.keys(this.fileLocations).indexOf(options.directory) === -1)
                 reject(`${options.directory} is currently not supported in the Electron implementation.`);
             let lookupPath = this.fileLocations[options.directory] + options.path;
+            // @ts-ignore
             readFile(lookupPath, options.encoding || 'binary', (err: any, data: any) => {
                 if (err) {
                     reject(err);
                     return;
                 }
+                // @ts-ignore
 
                 resolve({data: options.encoding ? data : Buffer.from(data, 'binary').toString('base64')});
             });
@@ -103,6 +106,7 @@ export class Filesystem implements FilesystemPlugin {
                         mkdirSync(dstDirectory, {recursive: doRecursive});
                     }
                 }
+                // @ts-ignore
                 writeFile(lookupPath, data, options.encoding || 'binary', (err: any) => {
                     if (err) {
                         reject(err);
@@ -122,8 +126,10 @@ export class Filesystem implements FilesystemPlugin {
             let data: (Buffer | string) = options.data;
             if (!options.encoding) {
                 const base64Data = options.data.indexOf(',') >= 0 ? options.data.split(',')[1] : options.data;
+                // @ts-ignore
                 data = Buffer.from(base64Data, 'base64');
             }
+            // @ts-ignore
             appendFile(lookupPath, data, options.encoding || 'binary', (err: any) => {
                 if (err) {
                     reject(err);
@@ -211,13 +217,13 @@ export class Filesystem implements FilesystemPlugin {
     }
 
     readdir(options: ReaddirOptions): Promise<ReaddirResult> {
-        console.log("readdir", options);
+        this.con.log("readdir", options);
         return new Promise((resolve, reject) => {
             if (Object.keys(this.fileLocations).indexOf(options.directory) === -1)
                 reject(`${options.directory} is currently not supported in the Electron implementation.`);
             let lookupPath = this.fileLocations[options.directory] + options.path;
 
-            console.log("reading directory in electron", lookupPath);
+            this.con.log("reading directory in electron", lookupPath);
 
             readdir(lookupPath, (err: any, files: string[]) => {
                 if (err) {
@@ -240,7 +246,7 @@ export class Filesystem implements FilesystemPlugin {
                     return fileInfo;
                 });
 
-                console.log("fileInfos", fileInfos);
+                this.con.log("fileInfos", fileInfos);
 
                 resolve({files: fileInfos});
             })
@@ -283,9 +289,6 @@ export class Filesystem implements FilesystemPlugin {
         });
     }
 
-    private getDocumentsDirectory(): string {
-
-    }
 
     private _copy(options: CopyOptions, doRename: boolean = false): Promise<void> {
         const copyRecursively = (src: string, dst: string): Promise<void> => {
@@ -395,11 +398,11 @@ export class Filesystem implements FilesystemPlugin {
         return null;
     }
 
-    addListener(eventName: "progress", listenerFunc: ProgressListener): Promise<PluginListenerHandle> {
+    addListener(_eventName: "progress", _listenerFunc: ProgressListener): Promise<PluginListenerHandle> {
         throw new Error('Method not implemented.');
     }
 
-    downloadFile(options: DownloadFileOptions): Promise<DownloadFileResult> {
+    downloadFile(_options: DownloadFileOptions): Promise<DownloadFileResult> {
         throw new Error('Method not implemented.');
     }
 
