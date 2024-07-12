@@ -211,6 +211,7 @@ export class Filesystem implements FilesystemPlugin {
     }
 
     readdir(options: ReaddirOptions): Promise<ReaddirResult> {
+        console.log("readdir", options);
         return new Promise((resolve, reject) => {
             if (Object.keys(this.fileLocations).indexOf(options.directory) === -1)
                 reject(`${options.directory} is currently not supported in the Electron implementation.`);
@@ -238,6 +239,8 @@ export class Filesystem implements FilesystemPlugin {
 
                     return fileInfo;
                 });
+
+                console.log("fileInfos", fileInfos);
 
                 resolve({files: fileInfos});
             })
