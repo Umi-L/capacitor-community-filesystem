@@ -46,6 +46,11 @@ class Filesystem {
         this.fileLocations[definitions_1.Directory.Documents] = path_1.join(os_1.homedir(), `Documents`) + path_1.sep;
         this.fileLocations[definitions_1.Directory.Cache] = path_1.join(os_1.homedir(), `AppData`, `Local`, `Temp`) + path_1.sep;
         this.fileLocations[definitions_1.Directory.Data] = process.cwd() + path_1.sep;
+        this.log("fileLocations", this.fileLocations);
+    }
+    log(...args) {
+        this.con.log(...args);
+        console.log(...args);
     }
     isBase64String(str) {
         try {
@@ -191,12 +196,12 @@ class Filesystem {
         });
     }
     readdir(options) {
-        this.con.log("readdir", options);
+        this.log("readdir", options);
         return new Promise((resolve, reject) => {
             if (Object.keys(this.fileLocations).indexOf(options.directory) === -1)
                 reject(`${options.directory} is currently not supported in the Electron implementation.`);
             let lookupPath = this.fileLocations[options.directory] + options.path;
-            this.con.log("reading directory in electron", lookupPath);
+            this.log("reading directory in electron", lookupPath);
             fs_1.readdir(lookupPath, (err, files) => {
                 if (err) {
                     reject(err);
@@ -214,7 +219,7 @@ class Filesystem {
                     };
                     return fileInfo;
                 });
-                this.con.log("fileInfos", fileInfos);
+                this.log("fileInfos", fileInfos);
                 resolve({ files: fileInfos });
             });
         });

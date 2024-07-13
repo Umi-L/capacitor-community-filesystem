@@ -47,6 +47,11 @@ export class Filesystem implements FilesystemPlugin {
 
     fileLocations: { [key: string]: string } = null;
 
+    private log(...args: any[]) {
+        this.con.log(...args);
+        console.log(...args);
+    }
+
     private isBase64String(str: string): boolean {
         try {
             return btoa(atob(str)) == str;
@@ -67,6 +72,8 @@ export class Filesystem implements FilesystemPlugin {
         this.fileLocations[Directory.Documents] = join(homedir(), `Documents`) + sep;
         this.fileLocations[Directory.Cache] = join(homedir(), `AppData`, `Local`, `Temp`) + sep;
         this.fileLocations[Directory.Data] = process.cwd() + sep;
+
+        this.log("fileLocations", this.fileLocations);
     }
 
     readFile(options: ReadFileOptions): Promise<ReadFileResult> {
@@ -217,13 +224,13 @@ export class Filesystem implements FilesystemPlugin {
     }
 
     readdir(options: ReaddirOptions): Promise<ReaddirResult> {
-        this.con.log("readdir", options);
+        this.log("readdir", options);
         return new Promise((resolve, reject) => {
             if (Object.keys(this.fileLocations).indexOf(options.directory) === -1)
                 reject(`${options.directory} is currently not supported in the Electron implementation.`);
             let lookupPath = this.fileLocations[options.directory] + options.path;
 
-            this.con.log("reading directory in electron", lookupPath);
+            this.log("reading directory in electron", lookupPath);
 
             readdir(lookupPath, (err: any, files: string[]) => {
                 if (err) {
@@ -246,7 +253,7 @@ export class Filesystem implements FilesystemPlugin {
                     return fileInfo;
                 });
 
-                this.con.log("fileInfos", fileInfos);
+                this.log("fileInfos", fileInfos);
 
                 resolve({files: fileInfos});
             })
